@@ -142,8 +142,12 @@
         showToast.value = true
   
         // Redirection après 1 seconde
+        // setTimeout(() => {
+        //   router.push('/home') // On créera cette page plus tard
+        // }, 1000)
+        // Redirection après 1 seconde
         setTimeout(() => {
-          router.push('/home') // On créera cette page plus tard
+          router.push('/tabs/home')
         }, 1000)
       } else {
         toastMessage.value = result.message
