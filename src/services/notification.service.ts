@@ -1,7 +1,8 @@
 // src/services/notifications.service.ts
 import { isPlatform } from '@ionic/vue'
 import { db } from '../config/firebase'
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore'
+import { collection, query, onSnapshot, orderBy } from 'firebase/firestore'
+import { Token } from '@capacitor/push-notifications'
 
 let unsubscribe: any = null
 
@@ -43,7 +44,7 @@ const showWebNotification = (title: string, body: string, data?: any) => {
     notification.onclick = () => {
       window.focus()
       notification.close()
-      // TODO: Naviguer vers l'historique
+      //  Naviguer vers l'historique
       if (data?.reparationId) {
         console.log('Rediriger vers réparation:', data.reparationId)
       }
@@ -131,7 +132,9 @@ const setupFCMNotifications = async (clientId: string) => {
       await PushNotifications.register()
       
       // Récupérer le token FCM
-      PushNotifications.addListener('registration', async (token) => {
+    //   PushNotifications.addListener('registration', async (token) => {
+        
+        PushNotifications.addListener('registration', async (token: Token) => {
         console.log('FCM Token:', token.value)
         // Sauvegarder le token dans Firestore
         const { saveClient } = await import('./firestore.service')
