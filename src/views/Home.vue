@@ -90,6 +90,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { onIonViewWillEnter } from '@ionic/vue'
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
   IonButton, IonButtons, IonIcon, IonCard, IonCardHeader,
@@ -117,9 +118,18 @@ onMounted(async () => {
   if (user) {
     userInfo.value = user
     userName.value = user.nom || user.email
-    await loadVoitures()
   } else {
     router.push('/login')
+  }
+})
+
+// Recharger les voitures à chaque fois qu'on entre sur la page
+onIonViewWillEnter(async () => {
+  const user = getCurrentUser()
+  if (user) {
+    userInfo.value = user
+    userName.value = user.nom || user.email
+    await loadVoitures()
   }
 })
 

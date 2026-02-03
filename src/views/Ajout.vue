@@ -61,8 +61,8 @@
   
           <!-- Boutons -->
           <div class="buttons-container">
-            <ion-button 
-              expand="block" 
+            <ion-button
+              expand="block"
               class="btn-submit"
               @click="handleSubmit"
               :disabled="isSubmitting"
@@ -71,8 +71,8 @@
               {{ isSubmitting ? 'Enregistrement...' : 'Enregistrer la voiture' }}
             </ion-button>
   
-            <ion-button 
-              expand="block" 
+            <ion-button
+              expand="block"
               fill="outline"
               class="btn-cancel"
               @click="$router.back()"
@@ -192,7 +192,7 @@
         id_client: user.id
       })
   
-      toastMessage.value = '🚗 Voiture ajoutée avec succès !'
+      toastMessage.value = 'Voiture ajoutée avec succès !'
       toastColor.value = 'success'
       showToast.value = true
   
