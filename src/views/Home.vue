@@ -21,13 +21,13 @@
       </div>
 
       <!-- Bouton TEST Notifications (TEMPORAIRE) -->
-      <ion-button 
+      <!-- <ion-button 
         expand="block" 
         color="warning"
         @click="testNotifications"
       >
         🔔 Tester les notifications
-      </ion-button>
+      </ion-button> -->
 
       <!-- Bouton Ajouter Voiture -->
       <ion-button 
