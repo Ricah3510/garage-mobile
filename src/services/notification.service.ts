@@ -1,17 +1,38 @@
 // src/services/notifications.service.ts
-import { isPlatform } from '@ionic/vue'
-import { db } from '../config/firebase'
-import { collection, query, onSnapshot, orderBy } from 'firebase/firestore'
-import { Token } from '@capacitor/push-notifications'
+import { getMessaging, getToken, onMessage } from 'firebase/messaging'
+import app from '../config/firebase'
+import { saveClient } from './firestore.service'
 
-let unsubscribe: any = null
+const messaging = getMessaging(app)
+
+// Clé VAPID depuis Firebase Console
+const VAPID_KEY = 'BBN1klxAlB_mPCiM9_0d4ZqdDvMcG92qhrHBfHifI4NXqSPdOCLrwp9SDJZgQMuVygos683o_j6o_miLQt631-w'
 
 /**
- * Demander la permission pour les notifications web
+ * Enregistrer le Service Worker
  */
-const requestWebNotificationPermission = async (): Promise<boolean> => {
+const registerServiceWorker = async (): Promise<ServiceWorkerRegistration | null> => {
+  if (!('serviceWorker' in navigator)) {
+    console.warn('Service Worker non supporté')
+    return null
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
+    console.log('✅ Service Worker enregistré:', registration)
+    return registration
+  } catch (error) {
+    console.error('❌ Erreur enregistrement Service Worker:', error)
+    return null
+  }
+}
+
+/**
+ * Demander la permission pour les notifications
+ */
+const requestNotificationPermission = async (): Promise<boolean> => {
   if (!('Notification' in window)) {
-    console.log('Ce navigateur ne supporte pas les notifications')
+    console.warn('Notifications non supportées')
     return false
   }
 
@@ -28,169 +49,105 @@ const requestWebNotificationPermission = async (): Promise<boolean> => {
 }
 
 /**
- * Afficher une notification web
+ * Obtenir le token FCM
  */
-const showWebNotification = (title: string, body: string, data?: any) => {
-  if (Notification.permission === 'granted') {
-    const notification = new Notification(title, {
-      body,
-      icon: '/icon.png', // Vous pouvez ajouter une icône
-      badge: '/icon.png',
-      tag: 'garage-notification',
-      data
+const getFCMToken = async (registration: ServiceWorkerRegistration): Promise<string | null> => {
+  try {
+    const token = await getToken(messaging, {
+      vapidKey: VAPID_KEY,
+      serviceWorkerRegistration: registration
     })
 
-    // Clic sur la notification
-    notification.onclick = () => {
-      window.focus()
-      notification.close()
-      //  Naviguer vers l'historique
-      if (data?.reparationId) {
-        console.log('Rediriger vers réparation:', data.reparationId)
-      }
+    if (token) {
+      console.log('✅ FCM Token obtenu:', token)
+      return token
+    } else {
+      console.warn('⚠️ Aucun token FCM obtenu')
+      return null
     }
+  } catch (error) {
+    console.error('❌ Erreur obtention token FCM:', error)
+    return null
   }
 }
 
 /**
- * Configuration des notifications WEB (pour développement PC)
+ * Initialiser les notifications FCM
  */
-const setupWebNotifications = async (clientId: string) => {
-  console.log('🌐 Configuration notifications WEB')
-  
-  // Demander la permission
-  const hasPermission = await requestWebNotificationPermission()
-  
+export const setupNotifications = async (clientId: string) => {
+  console.log('🔔 Initialisation des notifications FCM...')
+
+  // 1. Demander la permission
+  const hasPermission = await requestNotificationPermission()
   if (!hasPermission) {
-    console.warn('Permission notifications refusée')
+    console.warn('❌ Permission notifications refusée')
     return
   }
 
-  // Écouter les changements de status en temps réel
-  const statusQuery = query(
-    collection(db, 'reparation_status'),
-    orderBy('date_modification', 'desc')
-  )
+  // 2. Enregistrer le Service Worker
+  const registration = await registerServiceWorker()
+  if (!registration) {
+    console.warn('❌ Service Worker non disponible')
+    return
+  }
 
-  unsubscribe = onSnapshot(statusQuery, (snapshot) => {
-    snapshot.docChanges().forEach((change) => {
-      if (change.type === 'added') {
-        const statusData = change.doc.data()
-        
-        // Si le status est "terminee", envoyer notification
-        if (statusData.status === 'terminee') {
-          // Vérifier que c'est bien une réparation du client
-          checkAndNotify(clientId, statusData.id_reparation)
-        }
-      }
-    })
+  // 3. Obtenir le token FCM
+  const fcmToken = await getFCMToken(registration)
+  if (!fcmToken) {
+    console.warn('❌ Token FCM non obtenu')
+    return
+  }
+
+  // 4. Sauvegarder le token dans Firestore
+  try {
+    await saveClient(clientId, { fcm_token: fcmToken })
+    console.log('✅ Token FCM sauvegardé dans Firestore')
+  } catch (error) {
+    console.error('❌ Erreur sauvegarde token:', error)
+  }
+
+  // 5. Écouter les messages quand l'app est au premier plan
+  onMessage(messaging, (payload) => {
+    console.log('📩 Message reçu (app au premier plan):', payload)
+
+    const notificationTitle = payload.notification?.title || '🔧 Garage Naka'
+    const notificationBody = payload.notification?.body || 'Nouvelle notification'
+
+    // Afficher une notification même si l'app est ouverte
+    if (Notification.permission === 'granted') {
+      new Notification(notificationTitle, {
+        body: notificationBody,
+        icon: '/icon.png',
+        badge: '/icon.png',
+        tag: 'garage-notification',
+        data: payload.data
+      })
+    }
   })
 
-  console.log('✅ Écoute des notifications activée')
+  console.log('✅ Notifications FCM configurées avec succès !')
 }
 
 /**
- * Vérifier si la réparation appartient au client et notifier
- */
-const checkAndNotify = async (clientId: string, reparationId: string) => {
-  try {
-    // Importer getReparation pour éviter circular dependency
-    const { getReparation } = await import('./firestore.service')
-    const reparation = await getReparation(reparationId)
-    
-    if (reparation && reparation.id_client === clientId) {
-      // C'est une réparation du client, envoyer notification
-      showWebNotification(
-        'Réparation Terminée !',
-        'Votre véhicule est prêt. Vous pouvez venir le récupérer après paiement.',
-        { reparationId }
-      )
-    }
-  } catch (error) {
-    console.error('Erreur vérification réparation:', error)
-  }
-}
-
-/**
- * Configuration des notifications FCM (pour mobile Android/iOS)
- */
-const setupFCMNotifications = async (clientId: string) => {
-  console.log('📱 Configuration notifications FCM (mobile)')
-  
-  // TODO: À implémenter plus tard quand on testera sur mobile
-  // Nécessite: npm install @capacitor/push-notifications
-  
-  try {
-    // Import dynamique pour éviter les erreurs sur web
-    const { PushNotifications } = await import('@capacitor/push-notifications')
-    
-    // Demander la permission
-    const result = await PushNotifications.requestPermissions()
-    
-    if (result.receive === 'granted') {
-      // Enregistrer pour recevoir les notifications
-      await PushNotifications.register()
-      
-      // Récupérer le token FCM
-    //   PushNotifications.addListener('registration', async (token) => {
-        
-        PushNotifications.addListener('registration', async (token: Token) => {
-        console.log('FCM Token:', token.value)
-        // Sauvegarder le token dans Firestore
-        const { saveClient } = await import('./firestore.service')
-        await saveClient(clientId, { fcm_token: token.value })
-      })
-      
-      // Gérer les notifications reçues
-      PushNotifications.addListener('pushNotificationReceived', (notification) => {
-        console.log('Notification reçue:', notification)
-      })
-      
-      // Gérer les clics sur notifications
-      PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
-        console.log('Notification cliquée:', notification)
-      })
-    }
-  } catch (error) {
-    console.warn('FCM non disponible:', error)
-    // Fallback sur notifications web
-    await setupWebNotifications(clientId)
-  }
-}
-
-/**
- * Initialiser les notifications (détection automatique de la plateforme)
- */
-export const setupNotifications = async (clientId: string) => {
-  // Arrêter l'écoute précédente si elle existe
-  if (unsubscribe) {
-    unsubscribe()
-  }
-
-  if (isPlatform('android') || isPlatform('ios')) {
-    // Mobile : utiliser FCM
-    await setupFCMNotifications(clientId)
-  } else {
-    // Web : utiliser Notification API
-    await setupWebNotifications(clientId)
-  }
-}
-
-/**
- * Arrêter l'écoute des notifications
+ * Arrêter les notifications (optionnel, pas vraiment nécessaire avec FCM)
  */
 export const stopNotifications = () => {
-  if (unsubscribe) {
-    unsubscribe()
-    unsubscribe = null
-    console.log(' Notifications désactivées')
-  }
+  console.log('🔕 Notifications désactivées')
+  // Avec FCM, pas besoin d'arrêter l'écoute
 }
 
+/**
+ * Tester une notification locale (pour développement)
+ */
 export const testNotification = () => {
-  showWebNotification(
-    'Test Notification',
-    'Ceci est une notification de test du Garage Naka',
-    { test: true }
-  )
+  if (Notification.permission === 'granted') {
+    new Notification('🔧 Test Notification', {
+      body: 'Ceci est une notification de test du Garage Naka',
+      icon: '/icon.png',
+      badge: '/icon.png',
+      tag: 'test-notification'
+    })
+  } else {
+    console.warn('Permission notifications non accordée')
+  }
 }
