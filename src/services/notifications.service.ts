@@ -9,7 +9,7 @@ const messaging = getMessaging(app)
 const VAPID_KEY = 'BBN1klxAlB_mPCiM9_0d4ZqdDvMcG92qhrHBfHifI4NXqSPdOCLrwp9SDJZgQMuVygos683o_j6o_miLQt631-w'
 
 /**
- * Enregistrer le Service Worker
+ * Enregistrer le Service Worker et attendre qu'il soit actif
  */
 const registerServiceWorker = async (): Promise<ServiceWorkerRegistration | null> => {
   if (!('serviceWorker' in navigator)) {
@@ -20,6 +20,25 @@ const registerServiceWorker = async (): Promise<ServiceWorkerRegistration | null
   try {
     const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
     console.log('✅ Service Worker enregistré:', registration)
+    
+    // Attendre que le Service Worker soit actif
+    if (registration.active) {
+      console.log('✅ Service Worker déjà actif')
+      return registration
+    }
+    
+    // Si pas encore actif, attendre
+    console.log('⏳ Attente activation Service Worker...')
+    await new Promise<void>((resolve) => {
+      const checkActive = setInterval(() => {
+        if (registration.active) {
+          console.log('✅ Service Worker activé')
+          clearInterval(checkActive)
+          resolve()
+        }
+      }, 100)
+    })
+    
     return registration
   } catch (error) {
     console.error('❌ Erreur enregistrement Service Worker:', error)

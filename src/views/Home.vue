@@ -20,6 +20,15 @@
         <p class="subtitle">Gérez vos véhicules</p>
       </div>
 
+      <!-- Bouton TEST Notifications (TEMPORAIRE) -->
+      <ion-button 
+        expand="block" 
+        color="warning"
+        @click="testNotifications"
+      >
+        🔔 Tester les notifications
+      </ion-button>
+
       <!-- Bouton Ajouter Voiture -->
       <ion-button 
         expand="block" 
@@ -101,6 +110,7 @@ import {
 } from 'ionicons/icons'
 import { getCurrentUser, logout } from '../services/auth.service'
 import { getVoituresClient } from '../services/firestore.service'
+import { setupNotifications } from '../services/notifications.service'
 
 const router = useRouter()
 const userInfo = ref<any>(null)
@@ -132,6 +142,30 @@ onIonViewWillEnter(async () => {
     await loadVoitures()
   }
 })
+
+const testNotifications = async () => {
+  if (!userInfo.value?.id) {
+    toastMessage.value = 'Erreur : utilisateur non connecté'
+    toastColor.value = 'danger'
+    showToast.value = true
+    return
+  }
+
+  toastMessage.value = 'Initialisation des notifications...'
+  toastColor.value = 'primary'
+  showToast.value = true
+
+  try {
+    await setupNotifications(userInfo.value.id)
+    toastMessage.value = '✅ Notifications configurées ! Vérifiez Firebase.'
+    toastColor.value = 'success'
+    showToast.value = true
+  } catch (error: any) {
+    toastMessage.value = '❌ Erreur : ' + error.message
+    toastColor.value = 'danger'
+    showToast.value = true
+  }
+}
 
 const loadVoitures = async () => {
   try {
