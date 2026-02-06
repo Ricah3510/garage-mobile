@@ -158,7 +158,6 @@ onIonViewWillEnter(async () => {
     toastColor.value = 'danger'
     showToast.value = true
   }
-}
 
 const loadVoitures = async () => {
   try {
