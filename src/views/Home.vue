@@ -16,18 +16,9 @@
       
       <!-- Section Bienvenue -->
       <div class="welcome-section">
-        <h2>Bienvenue {{ userName }}</h2>
+        <h2>🔧 Bienvenue {{ userName }}</h2>
         <p class="subtitle">Gérez vos véhicules</p>
       </div>
-
-      <!-- Bouton TEST Notifications (TEMPORAIRE) -->
-      <!-- <ion-button 
-        expand="block" 
-        color="warning"
-        @click="testNotifications"
-      >
-        🔔 Tester les notifications
-      </ion-button> -->
 
       <!-- Bouton Ajouter Voiture -->
       <ion-button 
@@ -38,7 +29,6 @@
         <ion-icon :icon="addCircleOutline" slot="start" />
         Ajouter une voiture
       </ion-button>
-      <p></p>
 
       <!-- Loading -->
       <div v-if="isLoading" class="loading-container">
@@ -111,7 +101,6 @@ import {
 } from 'ionicons/icons'
 import { getCurrentUser, logout } from '../services/auth.service'
 import { getVoituresClient } from '../services/firestore.service'
-import { setupNotifications } from '../services/notifications.service'
 
 const router = useRouter()
 const userInfo = ref<any>(null)
@@ -143,21 +132,6 @@ onIonViewWillEnter(async () => {
     await loadVoitures()
   }
 })
-
-  toastMessage.value = 'Initialisation des notifications...'
-  toastColor.value = 'primary'
-  showToast.value = true
-
-  try {
-    await setupNotifications(userInfo.value.id)
-    toastMessage.value = '✅ Notifications configurées ! Vérifiez Firebase.'
-    toastColor.value = 'success'
-    showToast.value = true
-  } catch (error: any) {
-    toastMessage.value = '❌ Erreur : ' + error.message
-    toastColor.value = 'danger'
-    showToast.value = true
-  }
 
 const loadVoitures = async () => {
   try {
