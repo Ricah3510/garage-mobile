@@ -1,11 +1,7 @@
 // src/services/notifications.service.ts
 import { isPlatform } from '@ionic/vue'
 import { PushNotifications } from '@capacitor/push-notifications'
-import { getMessaging, getToken, onMessage } from 'firebase/messaging'
-import app from '../config/firebase'
 import { saveClient } from './firestore.service'
-
-const messaging = getMessaging(app)
 
 // Clé VAPID depuis Firebase Console
 const VAPID_KEY = 'BBN1klxAlB_mPCiM9_0d4ZqdDvMcG92qhrHBfHifI4NXqSPdOCLrwp9SDJZgQMuVygos683o_j6o_miLQt631-w'
@@ -76,6 +72,11 @@ const setupWebNotifications = async (clientId: string) => {
   console.log('🌐 Configuration FCM WEB')
 
   try {
+    // Import Firebase Messaging uniquement sur web
+    const { getMessaging, getToken, onMessage } = await import('firebase/messaging')
+    const app = (await import('../config/firebase')).default
+    const messaging = getMessaging(app)
+
     // Demander la permission
     const permission = await Notification.requestPermission()
     if (permission !== 'granted') {
