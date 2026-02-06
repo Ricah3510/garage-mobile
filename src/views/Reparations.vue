@@ -218,6 +218,9 @@ onIonViewWillEnter(async () => {
   const user = getCurrentUser()
   if (user) {
     userInfo.value = user
+    // Reset l'état pour recommencer à zéro
+    selectedVoiture.value = null
+    selectedInterventions.value = []
     await Promise.all([loadVoitures(), loadInterventions()])
   }
 })
@@ -305,11 +308,11 @@ const submitReparation = async () => {
     toastColor.value = 'success'
     showToast.value = true
     
-    // Reset
+    // Reset complet de l'état
     selectedVoiture.value = null
     selectedInterventions.value = []
     
-    // Rediriger vers l'historique après 1.5 secondes
+    // Rediriger immédiatement vers l'historique
     setTimeout(() => {
       router.push('/tabs/historique')
     }, 1500)
