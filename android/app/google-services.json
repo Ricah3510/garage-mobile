@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "258101790728",
+    "project_id": "garage-simulation",
+    "storage_bucket": "garage-simulation.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:258101790728:android:1853a307e9bcf922c5a9bd",
+        "android_client_info": {
+          "package_name": "com.garage.simulation"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "258101790728-chog3ddso7v3t483qm4aqc2glmvfmngr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAXm1olA3lTXdGgoxUlLfGv8YdTvfjMua4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "258101790728-chog3ddso7v3t483qm4aqc2glmvfmngr.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
