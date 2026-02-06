@@ -38,6 +38,7 @@
         <ion-icon :icon="addCircleOutline" slot="start" />
         Ajouter une voiture
       </ion-button>
+      <p></p>
 
       <!-- Loading -->
       <div v-if="isLoading" class="loading-container">
