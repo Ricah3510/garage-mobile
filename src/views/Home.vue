@@ -16,7 +16,7 @@
       
       <!-- Section Bienvenue -->
       <div class="welcome-section">
-        <h2>🔧 Bienvenue {{ userName }}</h2>
+        <h2>Bienvenue {{ userName }}</h2>
         <p class="subtitle">Gérez vos véhicules</p>
       </div>
 
