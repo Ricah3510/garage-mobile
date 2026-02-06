@@ -144,14 +144,6 @@ onIonViewWillEnter(async () => {
   }
 })
 
-const testNotifications = async () => {
-  if (!userInfo.value?.id) {
-    toastMessage.value = 'Erreur : utilisateur non connecté'
-    toastColor.value = 'danger'
-    showToast.value = true
-    return
-  }
-
   toastMessage.value = 'Initialisation des notifications...'
   toastColor.value = 'primary'
   showToast.value = true
