@@ -49,15 +49,9 @@ onMounted(async () => {
     return
   }
   
-  // Activer les notifications avec protection contre les erreurs
-  try {
-    console.log('🔔 Activation des notifications...')
-    await setupNotifications(user.id)
-    console.log('✅ Notifications activées avec succès')
-  } catch (error) {
-    console.error('❌ Erreur activation notifications:', error)
-    // Ne pas bloquer l'app si les notifications échouent
-  }
+  // Activer les notifications
+  console.log('🔔 Activation des notifications...')
+  await setupNotifications(user.id)
 })
 
 onUnmounted(() => {
