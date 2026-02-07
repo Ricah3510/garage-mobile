@@ -24,21 +24,46 @@
         </ion-tab-button>
       </ion-tab-bar>
     </ion-tabs>
+
+    <!-- Toast pour les notifications web -->
+    <ion-toast
+      :is-open="showToast"
+      :message="toastMessage"
+      :duration="5000"
+      color="success"
+      position="top"
+      @didDismiss="showToast = false"
+    />
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   IonPage, IonTabs, IonTabBar, IonTabButton,
-  IonIcon, IonLabel, IonRouterOutlet
+  IonIcon, IonLabel, IonRouterOutlet, IonToast
 } from '@ionic/vue'
 import { carSportOutline, constructOutline, timeOutline } from 'ionicons/icons'
 import { getCurrentUser } from '../services/auth.service'
 import { setupNotifications, stopNotifications } from '../services/notifications.service'
+import { useNotificationBus } from '../services/notification-bus.service'
 
 const router = useRouter()
+const { notificationEvent, clearNotification } = useNotificationBus()
+
+// Toast pour les notifications
+const showToast = ref(false)
+const toastMessage = ref('')
+
+// Écouter les notifications
+watch(notificationEvent, (newEvent) => {
+  if (newEvent) {
+    toastMessage.value = `${newEvent.title}: ${newEvent.body}`
+    showToast.value = true
+    clearNotification()
+  }
+})
 
 onMounted(async () => {
   // Vérifier que l'utilisateur est connecté
@@ -49,9 +74,15 @@ onMounted(async () => {
     return
   }
   
-  // Activer les notifications
-  console.log('🔔 Activation des notifications...')
-  await setupNotifications(user.id)
+  // Activer les notifications avec protection contre les erreurs
+  try {
+    console.log('🔔 Activation des notifications...')
+    await setupNotifications(user.id)
+    console.log('✅ Notifications activées avec succès')
+  } catch (error) {
+    console.error('❌ Erreur activation notifications:', error)
+    // Ne pas bloquer l'app si les notifications échouent
+  }
 })
 
 onUnmounted(() => {
