@@ -53,13 +53,16 @@ const setupMobileNotifications = async (clientId: string) => {
     // Notification reçue quand l'app est au premier plan
     PushNotifications.addListener('pushNotificationReceived', async (notification) => {
       console.log('📩 Notification reçue (app ouverte):', notification)
+      console.log('📩 Title:', notification.title)
+      console.log('📩 Body:', notification.body)
       
       // Créer une notification locale pour l'afficher même au premier plan
       try {
-        // Demander la permission pour les notifications locales
-        await LocalNotifications.requestPermissions()
+        console.log('🔔 Demande permission LocalNotifications...')
+        const result = await LocalNotifications.requestPermissions()
+        console.log('✅ Permission:', result)
         
-        // Afficher la notification locale
+        console.log('🔔 Création notification locale...')
         await LocalNotifications.schedule({
           notifications: [
             {
@@ -74,8 +77,9 @@ const setupMobileNotifications = async (clientId: string) => {
             }
           ]
         })
+        console.log('✅ Notification locale créée !')
       } catch (err) {
-        console.error('Erreur affichage notification locale:', err)
+        console.error('❌ Erreur affichage notification locale:', err)
       }
     })
 
