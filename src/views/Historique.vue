@@ -182,7 +182,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onUnmounted } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { onIonViewWillEnter } from '@ionic/vue'
 import {
@@ -230,50 +230,29 @@ onIonViewWillEnter(async () => {
   
   userInfo.value = user
   await loadReparations()
-  
-  // Démarrer l'écoute en temps réel
-  startRealtimeListener()
 })
 
-onUnmounted(() => {
-  // Arrêter l'écoute quand on quitte la page
-  stopRealtimeListener()
-})
-
-let unsubscribeReparations: (() => void) | null = null
-
-const startRealtimeListener = () => {
-  if (!userInfo.value) return
-  
-  // Arrêter l'ancien listener si existe
-  stopRealtimeListener()
-  
-  // Importer onSnapshot depuis Firebase
-  import('firebase/firestore').then(({ onSnapshot, collection, query, where, orderBy }) => {
-    import('../config/firebase').then(({ db }) => {
-      const q = query(
-        collection(db, 'reparations'),
-        where('id_client', '==', userInfo.value.id),
-        orderBy('date_creation', 'desc')
-      )
-      
-      unsubscribeReparations = onSnapshot(q, (snapshot) => {
-        console.log('🔄 Mise à jour temps réel des réparations')
-        reparations.value = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }))
-      })
-    })
-  })
-}
-
-const stopRealtimeListener = () => {
-  if (unsubscribeReparations) {
-    unsubscribeReparations()
-    unsubscribeReparations = null
-  }
-}
+// const loadReparations = async () => {
+//   try {
+//     isLoading.value = true
+    
+//     // Charger réparations et voitures en parallèle
+//     const [reparationsData, voituresData] = await Promise.all([
+//       getReparationsClient(userInfo.value.id),
+//       getVoituresClient(userInfo.value.id)
+//     ])
+    
+//     reparations.value = reparationsData
+//     voitures.value = voituresData
+//   } catch (error) {
+//     console.error('Erreur chargement réparations:', error)
+//     toastMessage.value = 'Erreur de chargement'
+//     toastColor.value = 'danger'
+//     showToast.value = true
+//   } finally {
+//     isLoading.value = false
+//   }
+// }
 
 const loadReparations = async () => {
   try {
