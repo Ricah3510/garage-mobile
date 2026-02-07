@@ -1,7 +1,11 @@
 // src/services/notifications.service.ts
 import { isPlatform } from '@ionic/vue'
 import { PushNotifications } from '@capacitor/push-notifications'
+import { LocalNotifications } from '@capacitor/local-notifications'
 import { saveClient } from './firestore.service'
+import { useNotificationBus } from './notification-bus.service'
+
+const { triggerNotification } = useNotificationBus()
 
 // Clé VAPID depuis Firebase Console
 const VAPID_KEY = 'BBN1klxAlB_mPCiM9_0d4ZqdDvMcG92qhrHBfHifI4NXqSPdOCLrwp9SDJZgQMuVygos683o_j6o_miLQt631-w'
@@ -47,8 +51,32 @@ const setupMobileNotifications = async (clientId: string) => {
     })
 
     // Notification reçue quand l'app est au premier plan
-    PushNotifications.addListener('pushNotificationReceived', (notification) => {
+    PushNotifications.addListener('pushNotificationReceived', async (notification) => {
       console.log('📩 Notification reçue (app ouverte):', notification)
+      
+      // Créer une notification locale pour l'afficher même au premier plan
+      try {
+        // Demander la permission pour les notifications locales
+        await LocalNotifications.requestPermissions()
+        
+        // Afficher la notification locale
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              id: Date.now(),
+              title: notification.title || '🔧 Garage Naka',
+              body: notification.body || 'Nouvelle notification',
+              smallIcon: 'ic_stat_icon_config_sample',
+              sound: undefined,
+              attachments: undefined,
+              actionTypeId: '',
+              extra: notification.data
+            }
+          ]
+        })
+      } catch (err) {
+        console.error('Erreur affichage notification locale:', err)
+      }
     })
 
     // Notification cliquée
@@ -134,19 +162,13 @@ const setupWebNotifications = async (clientId: string) => {
     onMessage(messaging, (payload) => {
       console.log('📩 Message FCM reçu (app ouverte):', payload)
 
-      // Afficher une notification locale
       const title = payload.notification?.title || '🔧 Garage Naka'
       const body = payload.notification?.body || 'Nouvelle notification'
 
-      if (Notification.permission === 'granted') {
-        new Notification(title, {
-          body,
-          icon: '/icon.png',
-          badge: '/icon.png',
-          tag: 'garage-notification',
-          data: payload.data
-        })
-      }
+      // Déclencher un événement pour afficher un toast dans l'app
+      triggerNotification(title, body)
+      
+      console.log('✅ Toast de notification déclenché')
     })
 
     console.log('✅ FCM Web configuré')
