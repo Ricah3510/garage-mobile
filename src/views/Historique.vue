@@ -285,7 +285,49 @@ const loadReparations = async () => {
       getVoituresClient(userInfo.value.id)
     ])
     
-    reparations.value = reparationsData
+    // Charger les statuts pour chaque réparation
+    const reparationsWithStatus = await Promise.all(
+      reparationsData.map(async (reparation: any) => {
+        try {
+          // Import dynamique de Firestore
+          const { collection, query, where, orderBy, getDocs, limit } = await import('firebase/firestore')
+          const { db } = await import('../config/firebase')
+          
+          // Récupérer le dernier statut de cette réparation
+          const q = query(
+            collection(db, 'reparation_status'),
+            where('id_reparation', '==', reparation.id),
+            orderBy('date_modification', 'desc'),
+            limit(1)
+          )
+          
+          const statusSnapshot = await getDocs(q)
+          
+          if (!statusSnapshot.empty) {
+            const statusDoc = statusSnapshot.docs[0].data()
+            return {
+              ...reparation,
+              status: statusDoc.status,
+              date_fin: statusDoc.date_modification
+            }
+          }
+          
+          // Par défaut, statut en_attente
+          return {
+            ...reparation,
+            status: 'en_attente'
+          }
+        } catch (error) {
+          console.error('Erreur chargement statut:', error)
+          return {
+            ...reparation,
+            status: 'en_attente'
+          }
+        }
+      })
+    )
+    
+    reparations.value = reparationsWithStatus
     voitures.value = voituresData
   } catch (error) {
     console.error('Erreur chargement réparations:', error)
