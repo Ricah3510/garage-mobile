@@ -192,19 +192,16 @@ import {
   IonModal, IonLoading, IonToast
 } from '@ionic/vue'
 import {
-  timeOutline,
-  constructOutline,
-  cardOutline,
-  checkmarkCircleOutline,
-  hammerOutline,
-  cashOutline,
-  phonePortraitOutline
+  timeOutline, calendarOutline, constructOutline, cardOutline,
+  checkmarkCircleOutline, hammerOutline, hourglassOutline,
+  cashOutline, phonePortraitOutline
 } from 'ionicons/icons'
 import { getCurrentUser } from '../services/auth.service'
 import { 
   getReparationsClient,
   getVoituresClient,
-  updateReparationStatus
+  updateReparationStatus,
+  createPaiement
 } from '../services/firestore.service'
 
 const router = useRouter()
@@ -300,7 +297,14 @@ const confirmPayment = async () => {
   try {
     isPaying.value = true
     
-    await updateReparationStatus(selectedReparation.value.id, 'payee')
+    // Créer le paiement (qui met automatiquement à jour la réparation)
+    await createPaiement({
+      id_reparation: selectedReparation.value.id,
+      id_client: userInfo.value.id,
+      montant: selectedReparation.value.montant_total,
+      mode_paiement: paymentMethod.value as 'carte' | 'especes' | 'mobile',
+      notes: `Paiement via ${paymentMethod.value}`
+    })
     
     toastMessage.value = '✅ Paiement effectué avec succès !'
     toastColor.value = 'success'
