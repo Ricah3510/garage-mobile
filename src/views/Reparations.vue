@@ -166,7 +166,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { onIonViewWillEnter } from '@ionic/vue'
 import {
@@ -222,7 +222,67 @@ onIonViewWillEnter(async () => {
   
   // Charger les données
   await Promise.all([loadVoitures(), loadInterventions()])
+  
+  // Démarrer l'écoute en temps réel
+  startRealtimeListeners()
 })
+
+onUnmounted(() => {
+  // Arrêter l'écoute quand on quitte la page
+  stopRealtimeListeners()
+})
+
+let unsubscribeVoitures: (() => void) | null = null
+let unsubscribeInterventions: (() => void) | null = null
+
+const startRealtimeListeners = () => {
+  if (!userInfo.value) return
+  
+  // Arrêter les anciens listeners si existent
+  stopRealtimeListeners()
+  
+  // Importer onSnapshot depuis Firebase
+  import('firebase/firestore').then(({ onSnapshot, collection, query, where, orderBy }) => {
+    import('../config/firebase').then(({ db }) => {
+      // Écouter les voitures
+      const qVoitures = query(
+        collection(db, 'voitures'),
+        where('id_client', '==', userInfo.value.id),
+        orderBy('date_creation', 'desc')
+      )
+      
+      unsubscribeVoitures = onSnapshot(qVoitures, (snapshot) => {
+        console.log('🔄 Mise à jour temps réel des voitures')
+        voitures.value = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+      })
+      
+      // Écouter les interventions
+      const qInterventions = collection(db, 'interventions')
+      
+      unsubscribeInterventions = onSnapshot(qInterventions, (snapshot) => {
+        console.log('🔄 Mise à jour temps réel des interventions')
+        interventions.value = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+      })
+    })
+  })
+}
+
+const stopRealtimeListeners = () => {
+  if (unsubscribeVoitures) {
+    unsubscribeVoitures()
+    unsubscribeVoitures = null
+  }
+  if (unsubscribeInterventions) {
+    unsubscribeInterventions()
+    unsubscribeInterventions = null
+  }
+}
 
 const loadVoitures = async () => {
   try {

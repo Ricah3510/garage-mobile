@@ -16,7 +16,7 @@
       
       <!-- Section Bienvenue -->
       <div class="welcome-section">
-        <h2>Bienvenue {{ userName }}</h2>
+        <h2>🔧 Bienvenue {{ userName }}</h2>
         <p class="subtitle">Gérez vos véhicules</p>
       </div>
 
@@ -41,10 +41,10 @@
         <ion-card 
           v-for="voiture in voitures" 
           :key="voiture.id"
-          class="voiture-card"
+          class="car-card"
         >
           <ion-card-header>
-            <div class="card-title-row">
+            <div class="card-header-content">
               <ion-icon :icon="carSportOutline" class="car-icon" />
               <div>
                 <ion-card-title>{{ voiture.modele }}</ion-card-title>
@@ -52,27 +52,20 @@
               </div>
             </div>
           </ion-card-header>
-
           <ion-card-content>
             <div class="car-info">
-              <div class="info-row">
-                <ion-icon :icon="calendarOutline" />
-                <span>Ajoutée le {{ formatDate(voiture.date_creation) }}</span>
-              </div>
+              <ion-icon :icon="calendarOutline" />
+              <span>Ajoutée le {{ formatDate(voiture.date_creation) }}</span>
             </div>
           </ion-card-content>
         </ion-card>
       </div>
 
-      <!-- Aucune voiture -->
+      <!-- Empty State -->
       <div v-else class="empty-state">
         <ion-icon :icon="carSportOutline" class="empty-icon" />
-        <h3>Aucune voiture enregistrée</h3>
+        <h3>Aucune voiture</h3>
         <p>Ajoutez votre première voiture pour commencer</p>
-        <ion-button @click="$router.push('/ajout')">
-          <ion-icon :icon="addCircleOutline" slot="start" />
-          Ajouter une voiture
-        </ion-button>
       </div>
 
       <!-- Toast -->
@@ -88,7 +81,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { onIonViewWillEnter } from '@ionic/vue'
 import {
@@ -113,25 +106,61 @@ const showToast = ref(false)
 const toastMessage = ref('')
 const toastColor = ref('success')
 
-onMounted(async () => {
-  const user = getCurrentUser()
-  if (user) {
-    userInfo.value = user
-    userName.value = user.nom || user.email
-  } else {
-    router.push('/login')
-  }
-})
-
-// Recharger les voitures à chaque fois qu'on entre sur la page
+// Recharger les voitures à CHAQUE entrée sur la page
 onIonViewWillEnter(async () => {
   const user = getCurrentUser()
-  if (user) {
-    userInfo.value = user
-    userName.value = user.nom || user.email
-    await loadVoitures()
+  if (!user) {
+    router.push('/login')
+    return
   }
+  
+  userInfo.value = user
+  userName.value = user.nom || user.email
+  await loadVoitures()
+  
+  // Démarrer l'écoute en temps réel
+  startRealtimeListener()
 })
+
+onUnmounted(() => {
+  // Arrêter l'écoute quand on quitte la page
+  stopRealtimeListener()
+})
+
+let unsubscribeVoitures: (() => void) | null = null
+
+const startRealtimeListener = () => {
+  if (!userInfo.value) return
+  
+  // Arrêter l'ancien listener si existe
+  stopRealtimeListener()
+  
+  // Importer onSnapshot depuis Firebase
+  import('firebase/firestore').then(({ onSnapshot, collection, query, where, orderBy }) => {
+    import('../config/firebase').then(({ db }) => {
+      const q = query(
+        collection(db, 'voitures'),
+        where('id_client', '==', userInfo.value.id),
+        orderBy('date_creation', 'desc')
+      )
+      
+      unsubscribeVoitures = onSnapshot(q, (snapshot) => {
+        console.log('🔄 Mise à jour temps réel des voitures')
+        voitures.value = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+      })
+    })
+  })
+}
+
+const stopRealtimeListener = () => {
+  if (unsubscribeVoitures) {
+    unsubscribeVoitures()
+    unsubscribeVoitures = null
+  }
+}
 
 const loadVoitures = async () => {
   try {
@@ -175,26 +204,28 @@ const formatDate = (timestamp: any) => {
 /* Welcome Section */
 .welcome-section {
   text-align: center;
-  margin: 1.5rem 0;
+  padding: 2rem 1rem;
+  margin-bottom: 1rem;
 }
 
 .welcome-section h2 {
-  color: #FF3B30;
+  color: #FFFFFF;
   font-weight: 800;
   margin-bottom: 0.5rem;
 }
 
 .subtitle {
-  color: #666;
-  font-size: 0.9rem;
+  color: #999;
+  font-size: 0.95rem;
 }
 
-/* Bouton Ajouter */
+/* Add Car Button */
 .btn-add-car {
   --background: #FF3B30;
   --border-radius: 12px;
   font-weight: bold;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
+  height: 50px;
 }
 
 /* Loading */
@@ -204,19 +235,24 @@ const formatDate = (timestamp: any) => {
 }
 
 .loading-container p {
+  color: #999;
   margin-top: 1rem;
-  color: #666;
 }
 
-/* Voiture Card */
-.voiture-card {
-  background: #1a1a1a;
-  border-radius: 16px;
-  margin-bottom: 1rem;
+/* Car Cards */
+.voitures-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.car-card {
+  --background: #1a1a1a;
   border: 1px solid #333;
+  border-radius: 16px;
 }
 
-.card-title-row {
+.card-header-content {
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -227,33 +263,28 @@ const formatDate = (timestamp: any) => {
   color: #FF3B30;
 }
 
-.voiture-card ion-card-title {
+ion-card-title {
   color: #FFFFFF;
   font-weight: 700;
+  font-size: 1.2rem;
 }
 
-.voiture-card ion-card-subtitle {
+ion-card-subtitle {
+  color: #FF3B30;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-top: 0.25rem;
+}
+
+.car-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   color: #999;
   font-size: 0.9rem;
 }
 
-.voiture-card ion-card-content {
-  color: #CCCCCC;
-}
-
-.car-info {
-  padding: 0.5rem 0;
-}
-
-.info-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #666;
-  font-size: 0.85rem;
-}
-
-.info-row ion-icon {
+.car-info ion-icon {
   color: #FF3B30;
 }
 
@@ -271,17 +302,11 @@ const formatDate = (timestamp: any) => {
 
 .empty-state h3 {
   color: #FFFFFF;
+  font-weight: 700;
   margin-bottom: 0.5rem;
 }
 
 .empty-state p {
-  color: #666;
-  margin-bottom: 1.5rem;
-}
-
-.empty-state ion-button {
-  --background: #FF3B30;
-  --border-radius: 12px;
-  font-weight: bold;
+  color: #999;
 }
 </style>
