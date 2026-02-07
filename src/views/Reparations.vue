@@ -8,148 +8,144 @@
     </ion-header>
 
     <ion-content :fullscreen="true" class="ion-padding">
-      
-      <!-- Header -->
-      <div class="header-section">
-        <ion-icon :icon="constructOutline" class="header-icon" />
-        <h2>Soumettre une réparation</h2>
-        <p>Sélectionnez votre voiture et les interventions nécessaires</p>
+
+      <!-- Step Indicator -->
+      <div class="steps-indicator">
+        <div class="step" :class="{ active: !selectedVoiture }">
+          <div class="step-number">1</div>
+          <span>Véhicule</span>
+        </div>
+        <div class="step-divider"></div>
+        <div class="step" :class="{ active: selectedVoiture }">
+          <div class="step-number">2</div>
+          <span>Interventions</span>
+        </div>
       </div>
 
-      <!-- Étape 1 : Sélection de la voiture -->
-      <div class="step-section">
-        <div class="step-header">
-          <span class="step-number">1</span>
-          <h3>Choisissez votre voiture</h3>
-        </div>
+      <!-- STEP 1 : Sélection Voiture -->
+      <div v-if="!selectedVoiture" class="step-content">
+        <h3 class="step-title">
+          <ion-icon :icon="carSportOutline" />
+          Sélectionnez un véhicule
+        </h3>
 
-        <!-- Loading voitures -->
-        <div v-if="loadingVoitures" class="loading-box">
-          <ion-spinner color="danger" />
+        <div v-if="loadingVoitures" class="loading-section">
+          <ion-spinner name="crescent" color="danger" />
           <p>Chargement des voitures...</p>
         </div>
 
-        <!-- Liste des voitures -->
         <div v-else-if="voitures.length > 0" class="voitures-grid">
           <div
             v-for="voiture in voitures"
             :key="voiture.id"
-            class="voiture-option"
-            :class="{ 'selected': selectedVoiture?.id === voiture.id }"
+            class="voiture-card"
             @click="selectVoiture(voiture)"
           >
-            <ion-icon :icon="carSportOutline" />
-            <div class="voiture-details">
-              <strong>{{ voiture.modele }}</strong>
-              <span>{{ voiture.immatriculation }}</span>
+            <ion-icon :icon="carSportOutline" class="voiture-icon" />
+            <div class="voiture-info">
+              <h4>{{ voiture.modele }}</h4>
+              <p>{{ voiture.immatriculation }}</p>
             </div>
-            <ion-icon 
-              v-if="selectedVoiture?.id === voiture.id" 
-              :icon="checkmarkCircleOutline" 
-              class="check-icon"
-            />
           </div>
         </div>
 
-        <!-- Aucune voiture -->
-        <div v-else class="empty-box">
-          <ion-icon :icon="carSportOutline" />
-          <p>Aucune voiture enregistrée</p>
-          <ion-button size="small" @click="$router.push('/ajout')">
+        <div v-else class="empty-state">
+          <ion-icon :icon="carSportOutline" class="empty-icon" />
+          <p>Aucune voiture disponible</p>
+          <ion-button fill="outline" @click="$router.push('/ajout')">
             Ajouter une voiture
           </ion-button>
         </div>
       </div>
 
-      <!-- Étape 2 : Sélection des interventions -->
-      <div v-if="selectedVoiture" class="step-section">
-        <div class="step-header">
-          <span class="step-number">2</span>
-          <h3>Sélectionnez les interventions</h3>
+      <!-- STEP 2 : Sélection Interventions -->
+      <div v-else class="step-content">
+        <h3 class="step-title">
+          <ion-icon :icon="constructOutline" />
+          Sélectionnez les interventions
+        </h3>
+
+        <!-- Voiture sélectionnée -->
+        <div class="selected-car-banner">
+          <ion-icon :icon="carSportOutline" />
+          <div>
+            <strong>{{ selectedVoiture.modele }}</strong>
+            <span>{{ selectedVoiture.immatriculation }}</span>
+          </div>
+          <ion-button fill="clear" size="small" @click="selectedVoiture = null">
+            Changer
+          </ion-button>
         </div>
 
-        <!-- Loading interventions -->
-        <div v-if="loadingInterventions" class="loading-box">
-          <ion-spinner color="danger" />
+        <div v-if="loadingInterventions" class="loading-section">
+          <ion-spinner name="crescent" color="danger" />
           <p>Chargement des interventions...</p>
         </div>
 
-        <!-- Liste des interventions -->
         <div v-else class="interventions-list">
           <div
             v-for="intervention in interventions"
             :key="intervention.id"
             class="intervention-card"
-            :class="{ 'selected': selectedInterventions.includes(intervention.id) }"
+            :class="{ selected: selectedInterventions.includes(intervention.id) }"
             @click="toggleIntervention(intervention.id)"
           >
-            <div class="intervention-header">
-              <ion-checkbox
-                :checked="selectedInterventions.includes(intervention.id)"
-                @click.stop="toggleIntervention(intervention.id)"
-              />
-              <div class="intervention-info">
-                <strong>{{ intervention.nom }}</strong>
-                <span class="duration">
+            <ion-checkbox
+              :checked="selectedInterventions.includes(intervention.id)"
+              @click.stop="toggleIntervention(intervention.id)"
+            />
+            <div class="intervention-details">
+              <h4>{{ intervention.nom }}</h4>
+              <div class="intervention-meta">
+                <span>
                   <ion-icon :icon="timeOutline" />
                   {{ Math.floor(intervention.duree_secondes / 60) }} min
                 </span>
+                <span class="price">{{ intervention.prix }} Ar</span>
               </div>
-              <span class="prix">{{ intervention.prix }}€</span>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Résumé et validation -->
-      <div v-if="selectedVoiture && selectedInterventions.length > 0" class="summary-section">
-        <div class="summary-card">
-          <h3>📋 Récapitulatif</h3>
-          
-          <div class="summary-item">
-            <ion-icon :icon="carSportOutline" />
-            <div>
-              <strong>{{ selectedVoiture.modele }}</strong>
-              <span>{{ selectedVoiture.immatriculation }}</span>
-            </div>
-          </div>
-
-          <div class="summary-item">
+        <!-- Summary -->
+        <div v-if="selectedInterventions.length > 0" class="summary-card">
+          <h4>
             <ion-icon :icon="listOutline" />
-            <div>
-              <strong>{{ selectedInterventions.length }} intervention(s)</strong>
-              <span>{{ calculateDuration() }} min au total</span>
-            </div>
+            Résumé
+          </h4>
+          <div class="summary-row">
+            <span>Véhicule :</span>
+            <strong>{{ selectedVoiture.modele }}</strong>
           </div>
-
-          <div class="total-row">
-            <strong>TOTAL</strong>
-            <span class="total-prix">{{ calculateTotal() }}€</span>
+          <div class="summary-row">
+            <span>Interventions :</span>
+            <strong>{{ selectedInterventions.length }}</strong>
+          </div>
+          <div class="summary-row">
+            <span>Durée totale :</span>
+            <strong>{{ calculateDuration() }} min</strong>
+          </div>
+          <div class="summary-row total">
+            <span>Total :</span>
+            <strong>{{ calculateTotal() }} Ar</strong>
           </div>
 
           <ion-button
             expand="block"
-            class="btn-submit"
+            class="submit-btn"
             @click="submitReparation"
             :disabled="isSubmitting"
           >
             <ion-icon :icon="checkmarkCircleOutline" slot="start" />
-            {{ isSubmitting ? 'Soumission...' : 'Soumettre la réparation' }}
+            {{ isSubmitting ? 'Envoi en cours...' : 'Valider la réparation' }}
           </ion-button>
         </div>
-      </div>
 
-      <!-- Info si pas de sélection -->
-      <div v-else-if="selectedVoiture && selectedInterventions.length === 0" class="info-box">
-        <ion-icon :icon="informationCircleOutline" />
-        <p>Sélectionnez au moins une intervention pour continuer</p>
+        <div v-else class="info-box">
+          <ion-icon :icon="informationCircleOutline" />
+          <p>Sélectionnez au moins une intervention</p>
+        </div>
       </div>
-
-      <!-- Loading -->
-      <ion-loading
-        :is-open="isSubmitting"
-        message="Création de la réparation..."
-      />
 
       <!-- Toast -->
       <ion-toast
@@ -159,12 +155,18 @@
         :color="toastColor"
         @didDismiss="showToast = false"
       />
+
+      <!-- Loading Overlay -->
+      <ion-loading
+        :is-open="isSubmitting"
+        message="Création de la réparation..."
+      />
     </ion-content>
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { onIonViewWillEnter } from '@ionic/vue'
 import {
@@ -204,25 +206,22 @@ const showToast = ref(false)
 const toastMessage = ref('')
 const toastColor = ref('success')
 
-onMounted(async () => {
-  const user = getCurrentUser()
-  if (user) {
-    userInfo.value = user
-  } else {
-    router.push('/login')
-  }
-})
-
-// Recharger les données à chaque entrée sur la page
+// Recharger à CHAQUE entrée sur la page
 onIonViewWillEnter(async () => {
   const user = getCurrentUser()
-  if (user) {
-    userInfo.value = user
-    // Reset l'état pour recommencer à zéro
-    selectedVoiture.value = null
-    selectedInterventions.value = []
-    await Promise.all([loadVoitures(), loadInterventions()])
+  if (!user) {
+    router.push('/login')
+    return
   }
+  
+  userInfo.value = user
+  
+  // RESET complet de l'état
+  selectedVoiture.value = null
+  selectedInterventions.value = []
+  
+  // Charger les données
+  await Promise.all([loadVoitures(), loadInterventions()])
 })
 
 const loadVoitures = async () => {
@@ -284,6 +283,13 @@ const calculateDuration = () => {
 }
 
 const submitReparation = async () => {
+  if (selectedInterventions.value.length === 0) {
+    toastMessage.value = 'Sélectionnez au moins une intervention'
+    toastColor.value = 'warning'
+    showToast.value = true
+    return
+  }
+
   try {
     isSubmitting.value = true
     
@@ -308,11 +314,7 @@ const submitReparation = async () => {
     toastColor.value = 'success'
     showToast.value = true
     
-    // Reset complet de l'état
-    selectedVoiture.value = null
-    selectedInterventions.value = []
-    
-    // Rediriger immédiatement vers l'historique
+    // Rediriger vers l'historique après 1.5 secondes
     setTimeout(() => {
       router.push('/tabs/historique')
     }, 1500)
@@ -335,285 +337,281 @@ const submitReparation = async () => {
   --color: #FF3B30;
 }
 
-.custom-toolbar ion-title {
-  font-weight: 900;
-  letter-spacing: 2px;
-}
-
-/* Header Section */
-.header-section {
-  text-align: center;
-  padding: 2rem 0;
-  background: linear-gradient(135deg, rgba(255, 59, 48, 0.1) 0%, rgba(0, 0, 0, 0) 100%);
-  border-radius: 16px;
-  margin-bottom: 2rem;
-}
-
-.header-icon {
-  font-size: 4rem;
-  color: #FF3B30;
-  margin-bottom: 1rem;
-}
-
-.header-section h2 {
-  color: #FFFFFF;
-  font-weight: 800;
-  margin-bottom: 0.5rem;
-}
-
-.header-section p {
-  color: #999;
-  font-size: 0.9rem;
-}
-
-/* Step Section */
-.step-section {
-  margin-bottom: 2rem;
-}
-
-.step-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.step-number {
-  width: 36px;
-  height: 36px;
-  background: #FF3B30;
-  color: #FFFFFF;
-  border-radius: 50%;
+/* Steps Indicator */
+.steps-indicator {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 900;
-  font-size: 1.2rem;
+  padding: 1.5rem 0;
+  margin-bottom: 1rem;
 }
 
-.step-header h3 {
-  color: #FFFFFF;
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  opacity: 0.5;
+  transition: opacity 0.3s;
+}
+
+.step.active {
+  opacity: 1;
+}
+
+.step-number {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #333;
+  color: #999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-weight: 700;
-  margin: 0;
+  border: 2px solid #333;
 }
 
-/* Loading Box */
-.loading-box {
+.step.active .step-number {
+  background: #FF3B30;
+  color: #FFF;
+  border-color: #FF3B30;
+}
+
+.step span {
+  font-size: 0.85rem;
+  color: #999;
+}
+
+.step.active span {
+  color: #FFF;
+  font-weight: 600;
+}
+
+.step-divider {
+  width: 60px;
+  height: 2px;
+  background: #333;
+  margin: 0 1rem;
+}
+
+/* Step Content */
+.step-content {
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.step-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #FF3B30;
+  font-weight: 700;
+  font-size: 1.2rem;
+  margin-bottom: 1.5rem;
+}
+
+.step-title ion-icon {
+  font-size: 1.5rem;
+}
+
+/* Loading */
+.loading-section {
   text-align: center;
-  padding: 2rem;
-  background: #1a1a1a;
-  border-radius: 12px;
+  padding: 3rem 0;
 }
 
-.loading-box p {
+.loading-section p {
+  color: #999;
   margin-top: 1rem;
-  color: #666;
 }
 
 /* Voitures Grid */
 .voitures-grid {
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 1rem;
 }
 
-.voiture-option {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
+.voiture-card {
   background: #1a1a1a;
   border: 2px solid #333;
   border-radius: 12px;
+  padding: 1.5rem 1rem;
+  text-align: center;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s;
 }
 
-.voiture-option:hover {
-  border-color: #555;
-}
-
-.voiture-option.selected {
-  background: rgba(255, 59, 48, 0.2);
+.voiture-card:hover {
   border-color: #FF3B30;
+  transform: translateY(-2px);
 }
 
-.voiture-option > ion-icon:first-child {
+.voiture-icon {
+  font-size: 3rem;
+  color: #FF3B30;
+  margin-bottom: 0.75rem;
+}
+
+.voiture-info h4 {
+  color: #FFF;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.voiture-info p {
+  color: #999;
+  font-size: 0.85rem;
+}
+
+/* Selected Car Banner */
+.selected-car-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(255, 59, 48, 0.1);
+  border: 1px solid #FF3B30;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.selected-car-banner ion-icon {
   font-size: 2rem;
   color: #FF3B30;
 }
 
-.voiture-details {
+.selected-car-banner div {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
 }
 
-.voiture-details strong {
-  color: #FFFFFF;
-  font-size: 1rem;
+.selected-car-banner strong {
+  color: #FFF;
+  font-size: 1.1rem;
 }
 
-.voiture-details span {
-  color: #999;
-  font-size: 0.85rem;
-}
-
-.check-icon {
-  color: #30D158;
-  font-size: 1.5rem;
-}
-
-/* Empty Box */
-.empty-box {
-  text-align: center;
-  padding: 2rem;
-  background: #1a1a1a;
-  border-radius: 12px;
-  border: 2px dashed #333;
-}
-
-.empty-box ion-icon {
-  font-size: 3rem;
-  color: #333;
-  margin-bottom: 1rem;
-}
-
-.empty-box p {
-  color: #666;
-  margin-bottom: 1rem;
+.selected-car-banner span {
+  color: #FF3B30;
+  font-size: 0.9rem;
 }
 
 /* Interventions List */
 .interventions-list {
-  display: grid;
-  gap: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .intervention-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
   background: #1a1a1a;
   border: 2px solid #333;
   border-radius: 12px;
   padding: 1rem;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s;
 }
 
-.intervention-card:hover {
-  border-color: #555;
-}
-
+.intervention-card:hover,
 .intervention-card.selected {
-  background: rgba(255, 59, 48, 0.2);
   border-color: #FF3B30;
+  background: rgba(255, 59, 48, 0.05);
 }
 
-.intervention-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.intervention-info {
+.intervention-details {
   flex: 1;
+}
+
+.intervention-details h4 {
+  color: #FFF;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.intervention-meta {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  gap: 1.5rem;
+  font-size: 0.85rem;
 }
 
-.intervention-info strong {
-  color: #FFFFFF;
-  font-size: 1rem;
-}
-
-.duration {
+.intervention-meta span {
   display: flex;
   align-items: center;
   gap: 0.3rem;
   color: #999;
-  font-size: 0.85rem;
 }
 
-.duration ion-icon {
-  font-size: 1rem;
+.intervention-meta ion-icon {
   color: #FF3B30;
 }
 
-.prix {
-  color: #FF3B30;
+.intervention-meta .price {
+  color: #30D158;
   font-weight: 700;
-  font-size: 1.1rem;
 }
 
-/* Summary Section */
-.summary-section {
-  margin-top: 2rem;
-}
-
+/* Summary Card */
 .summary-card {
-  background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+  background: #1a1a1a;
   border: 2px solid #FF3B30;
   border-radius: 16px;
   padding: 1.5rem;
 }
 
-.summary-card h3 {
-  color: #FFFFFF;
-  margin-bottom: 1rem;
-  font-size: 1.2rem;
-}
-
-.summary-item {
+.summary-card h4 {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem 0;
-  border-bottom: 1px solid #333;
-}
-
-.summary-item ion-icon {
-  font-size: 1.5rem;
+  gap: 0.5rem;
   color: #FF3B30;
+  font-weight: 700;
+  margin-bottom: 1rem;
 }
 
-.summary-item div {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.summary-item strong {
-  color: #FFFFFF;
-}
-
-.summary-item span {
-  color: #999;
-  font-size: 0.85rem;
-}
-
-.total-row {
+.summary-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem 0 1rem 0;
-  font-size: 1.3rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #333;
+  color: #999;
 }
 
-.total-row strong {
-  color: #FFFFFF;
+.summary-row:last-of-type {
+  border-bottom: none;
 }
 
-.total-prix {
-  color: #FF3B30;
+.summary-row strong {
+  color: #FFF;
+}
+
+.summary-row.total {
+  font-size: 1.2rem;
+  color: #FFF;
+  padding-top: 1rem;
+  margin-top: 0.5rem;
+  border-top: 2px solid #FF3B30;
+  border-bottom: none;
+}
+
+.summary-row.total strong {
+  color: #30D158;
   font-weight: 900;
 }
 
-.btn-submit {
-  --background: #FF3B30;
+.submit-btn {
+  --background: #30D158;
   --border-radius: 12px;
   font-weight: bold;
-  margin-top: 1rem;
+  margin-top: 1.5rem;
   height: 50px;
 }
 
@@ -623,14 +621,30 @@ const submitReparation = async () => {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: rgba(255, 159, 10, 0.1);
-  border: 1px solid rgba(255, 159, 10, 0.3);
+  background: rgba(10, 132, 255, 0.1);
+  border: 1px solid rgba(10, 132, 255, 0.3);
   border-radius: 12px;
-  color: #FF9F0A;
-  margin-top: 1rem;
+  color: #0A84FF;
 }
 
 .info-box ion-icon {
   font-size: 1.5rem;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.empty-icon {
+  font-size: 5rem;
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+.empty-state p {
+  color: #999;
+  margin-bottom: 1.5rem;
 }
 </style>
