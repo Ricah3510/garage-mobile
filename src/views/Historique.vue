@@ -192,9 +192,13 @@ import {
   IonModal, IonLoading, IonToast
 } from '@ionic/vue'
 import {
-  timeOutline, calendarOutline, constructOutline, cardOutline,
-  checkmarkCircleOutline, hammerOutline, hourglassOutline,
-  cashOutline, phonePortraitOutline
+  timeOutline,
+  constructOutline,
+  cardOutline,
+  checkmarkCircleOutline,
+  hammerOutline,
+  cashOutline,
+  phonePortraitOutline
 } from 'ionicons/icons'
 import { getCurrentUser } from '../services/auth.service'
 import { 
